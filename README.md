@@ -15,6 +15,6 @@ common time complexities, i.e., $(O(1), O(\log(n)), O(n), O(n \log(n)), O(n^2), 
 * **Important: Differentiate between $O(n^3)$ and $O(a^n)$**
 * Make the program run with custom input that isn't purely numeric.
   * E.g., ensuring that assignment code can be tested, albeit usually being in an altenrative format where size is not easily discernable.
-  * The working idea (in my head) is to take in a delimited .tca file, in the form \< program arguments \> | <size this represents>
+  * The working idea (in my head) is to take in a delimited .tca file, in the form \< program arguments \> | \<size this represents\>
 
 
