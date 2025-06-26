@@ -1,14 +1,17 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#define bsearch _bsearch
 #include <stdlib.h>
-#undef bsearch
 
-bool bsearch(int arr[], int n, int key);
+bool binarySearch(int arr[], int n, int key);
 
 int main(int argc, char *argv[]) {
-	int n = argc == 1 ? 0 : atoi(argv[1]);
+	if (argc != 2) {
+		fprintf(stderr, "usage: %s <array size>\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	int n = atoi(argv[1]);
 
 	int *arr = malloc(n * sizeof(int));
 	if (arr == NULL) {
@@ -20,10 +23,12 @@ int main(int argc, char *argv[]) {
 		arr[i] = 2 * i + 1;
 	}
 
-	bsearch(arr, n, 2 * n);
+	binarySearch(arr, n, 2 * n);
+
+	free(arr);
 }
 
-bool bsearch(int arr[], int n, int key) {
+bool binarySearch(int arr[], int n, int key) {
 	int lo = 0;
 	int hi = n - 1;
 	while (lo <= hi) {
