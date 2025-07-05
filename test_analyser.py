@@ -65,6 +65,9 @@ class TestQuadraticComplexity(TestSuite):
 	def test_doubleNestedLoop(self):
 		self.run_test('doubleNestedLoop', [10, 20, 30, 40, 50, 60, 70, 80])
 
+	def test_selectionSort(self):
+		self.run_test('selectionSort', [10, 20, 30, 40, 50, 60, 70, 80])
+
 	def test_twoSum(self):
 		self.run_test('twoSum', [10, 20, 30, 40, 50, 60, 70, 80])
 
