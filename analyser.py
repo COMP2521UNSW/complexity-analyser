@@ -3,26 +3,68 @@
 # Time complexity analyser
 
 import argparse
-import numpy as np
+import logging
 import os
 import re
-from sklearn import linear_model
 import subprocess
 import sys
 import tempfile
 
-MIN_INPUT_SIZES = 4
+import numpy as np
+from sklearn import linear_model
+
+from functions import common_functions
+
+MIN_INPUT_SIZES = 5
+
+class Model:
+	name: str
+	model: linear_model.LinearRegression
+	score: float = None
+
+	def __init__(self, name):
+		self.name = name
+		self.model = linear_model.LinearRegression(positive=True)
+
+	def fit_and_score(self, X, y):
+		X_train, X_test, y_train, y_test = self.train_test_split(X, y)
+
+		try:
+			self.model.fit(X_train, y_train)
+			self.score = self.model.score(X_test, y_test)
+
+		except ValueError as e:
+			self.score = float('-inf')
+
+		return self.score		
+
+	def train_test_split(self, X, y):
+		n = np.size(y)
+		split_idx = n // 2
+		return X[:split_idx], X[split_idx:], y[:split_idx], y[split_idx:]
+
+	def log(self):
+		logging.info(f'{self.name}')
+		logging.info(f'Coefficients: {self.model.coef_}')
+		logging.info(f'Intercept: {self.model.intercept_}')
+		logging.info(f'Score: {self.score}')
+		logging.info(f'')
+
+########################################################################
 
 def main():
 	args = parse_arguments()
 
+	if args.verbose:
+		logging.basicConfig(format='%(message)s', level=logging.INFO)
+
 	command_prefix = args.command
 	function_name = args.function_name
-	input_sizes = args.input_sizes
+	input_sizes = args.input_size
 
-	op_counts = collect_op_counts(command_prefix, function_name, input_sizes)
+	complexity = analyse(command_prefix, function_name, input_sizes)
 
-	most_likely_complexity = analyse_complexity(input_sizes, op_counts)
+	print(f'Best-fitting time complexity: {complexity}')
 
 ########################################################################
 
@@ -33,19 +75,34 @@ def parse_arguments():
 
 	parser.add_argument('command')
 	parser.add_argument('function_name')
-	parser.add_argument('input_sizes', nargs='+', type=int)
+	parser.add_argument('input_size', nargs='+', type=int)
+	parser.add_argument('-v', '--verbose', action='store_true')
 
 	args = parser.parse_args()
 	check_arguments(args)
 	return args
 
 def check_arguments(args):
-	if len(args.input_sizes) < MIN_INPUT_SIZES:
-		print(f'error: at least {MIN_INPUT_SIZES} input sizes are required',
+	args.input_size = sorted(set(args.input_size))
+	if len(args.input_size) < MIN_INPUT_SIZES:
+		print(f'error: at least {MIN_INPUT_SIZES} unique input sizes are required',
 		      file=sys.stderr)
 		sys.exit(1)
 
 ########################################################################
+
+def analyse(command_prefix, function_name, input_sizes):
+	op_counts = collect_op_counts(command_prefix, function_name, input_sizes)
+
+	logging.info(f'Input sizes: {input_sizes}')
+	logging.info(f'Instruction counts: {op_counts}')
+	logging.info(f'')
+
+	best_model = analyse_data(input_sizes, op_counts)
+	return best_model.name
+
+###############
+# Collect data
 
 def collect_op_counts(command_prefix, function_name, input_sizes):
 	op_counts = []
@@ -93,98 +150,47 @@ def get_op_count(command, function_name, temp_file_name):
 		print(f'error: an error occurred while reading valgrind log file: {e}')
 		sys.exit(1) # TODO: handle more gracefully
 
-def analyse_complexity(input_sizes, op_counts):
-	print(input_sizes)
-	print(op_counts)
+###############
+# Analyse data
 
-	X = np.array(input_sizes).reshape(-1, 1)
+def analyse_data(input_sizes, op_counts):
+	x = np.array(input_sizes).reshape(-1, 1)
 	y = np.array(op_counts)
 
-	log_X = np.log2(X)
-	X_log_X = X * np.log2(X)
-	X_squared = X * X
-	X_cubed = X * X * X
-	exp_theta_X = ((1 + 5 ** 0.5) / 2) ** X
-	exp_2_X = 2 ** X
+	models = create_models(common_functions, x, y)
 
-	# O(1)
-	# y = a
-	reg1 = linear_model.LinearRegression(positive=True)
-	reg1.fit(X * 0, y)
-	print(reg1.coef_)
-	print(reg1.intercept_)
+	best_model = choose_best_model(models)
 
-	# O(log n)
-	# y = a + b log x
-	reg2 = linear_model.LinearRegression(positive=True)
-	reg2.fit(log_X, y)
-	print(reg2.coef_)
-	print(reg2.intercept_)
+	return best_model
 
-	# O(n)
-	# y = a + b log x + cx
-	reg3 = linear_model.LinearRegression(positive=True)
-	reg3.fit(np.concatenate((log_X, X), axis=1), y)
-	print(reg3.coef_)
-	print(reg3.intercept_)
+def create_models(functions, x, y):
+	models = []
 
-	# O(n log n)
-	# y = a + b log x + cx + dx log x
-	reg5 = linear_model.LinearRegression(positive=True)
-	reg5.fit(np.concatenate((log_X, X, X_log_X), axis=1), y)
-	print(reg5.coef_)
-	print(reg5.intercept_)
+	X_cols = []
+	for function in functions:
+		X_cols.append(function['fn'](x))
 
-	# O(n^2)
-	# y = a + b log x + cx + dx log x + ex^2
-	reg6 = linear_model.LinearRegression(positive=True)
-	reg6.fit(np.concatenate((log_X, X, X_log_X, X_squared), axis=1), y)
-	print(reg6.coef_)
-	print(reg6.intercept_)
+		model = Model(function['name'])
+		model.fit_and_score(np.concatenate(X_cols, axis=1), y)
+		models.append(model)
 
-	# O(n^(golden ratio))
-	# y = a + b log x + cx + dx log x + ex^2 + f(golden ratio)^x
-	reg7 = linear_model.LinearRegression(positive=True)
-	reg7.fit(np.concatenate((log_X, X, X_log_X, X_squared, exp_theta_X), axis=1), y)
-	print(reg7.coef_)
-	print(reg7.intercept_)
+	return models
+
+def choose_best_model(models):
+	best_score = float('-inf')
+	best_model = None
+
+	for model in models:
+		model.log()
+
+		if model.score > best_score + 0.01:
+			best_score = model.score
+			best_model = model
+
+	return best_model
 
 ########################################################################
 
 if __name__ == '__main__':
 	main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

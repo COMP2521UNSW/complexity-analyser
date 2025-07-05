@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void medianOfThreeQuickSort(int a[], int lo, int hi);
+static void quickSort(int a[], int lo, int hi);
 static void medianOfThree(int a[], int lo, int hi);
 static int partition(int a[], int lo, int hi);
 static inline void swap(int a[], int i, int j);
@@ -21,17 +21,17 @@ int main(int argc, char *argv[]) {
 		arr[i] = i;
 	}
 
-	medianOfThreeQuickSort(arr, 0, n - 1);
+	quickSort(arr, 0, n - 1);
 
 	free(arr);
 }
 
-static void medianOfThreeQuickSort(int a[], int lo, int hi) {
+static void quickSort(int a[], int lo, int hi) {
 	if (lo >= hi) return;
 	medianOfThree(a, lo, hi);
 	int pivotIndex = partition(a, lo, hi);
-	medianOfThreeQuickSort(a, lo, pivotIndex - 1);
-	medianOfThreeQuickSort(a, pivotIndex + 1, hi);
+	quickSort(a, lo, pivotIndex - 1);
+	quickSort(a, pivotIndex + 1, hi);
 }
 
 static void medianOfThree(int a[], int lo, int hi) {
