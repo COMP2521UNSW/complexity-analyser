@@ -16,6 +16,7 @@ from sklearn import linear_model
 from functions import common_functions
 
 MIN_INPUT_SIZES = 5
+DEFAULT_TIMEOUT = 5
 
 class Model:
 	name: str
@@ -61,8 +62,9 @@ def main():
 	command_prefix = args.command
 	function_name = args.function_name
 	input_sizes = args.input_size
+	timeout = args.timeout
 
-	complexity = analyse(command_prefix, function_name, input_sizes)
+	complexity = analyse(command_prefix, function_name, input_sizes, timeout)
 
 	print(f'Best-fitting time complexity: {complexity}')
 
@@ -76,7 +78,10 @@ def parse_arguments():
 	parser.add_argument('command')
 	parser.add_argument('function_name')
 	parser.add_argument('input_size', nargs='+', type=int)
-	parser.add_argument('-v', '--verbose', action='store_true')
+	parser.add_argument('-t', '--timeout', default=DEFAULT_TIMEOUT, type=int,
+			help='maximum allowed execution time for each run of the command')
+	parser.add_argument('-v', '--verbose', action='store_true',
+			help='display instruction counts and fitted models')
 
 	args = parser.parse_args()
 	check_arguments(args)
@@ -85,14 +90,16 @@ def parse_arguments():
 def check_arguments(args):
 	args.input_size = sorted(set(args.input_size))
 	if len(args.input_size) < MIN_INPUT_SIZES:
-		print(f'error: at least {MIN_INPUT_SIZES} unique input sizes are required',
-		      file=sys.stderr)
+		print(f'error: at least {MIN_INPUT_SIZES} unique input sizes are '
+		      f'required', file=sys.stderr)
 		sys.exit(1)
 
 ########################################################################
 
-def analyse(command_prefix, function_name, input_sizes):
-	op_counts = collect_op_counts(command_prefix, function_name, input_sizes)
+def analyse(command_prefix, function_name, input_sizes,
+            timeout=DEFAULT_TIMEOUT):
+	op_counts = collect_op_counts(command_prefix, function_name, input_sizes,
+	                              timeout)
 
 	logging.info(f'Input sizes: {input_sizes}')
 	logging.info(f'Instruction counts: {op_counts}')
@@ -104,19 +111,19 @@ def analyse(command_prefix, function_name, input_sizes):
 ###############
 # Collect data
 
-def collect_op_counts(command_prefix, function_name, input_sizes):
+def collect_op_counts(command_prefix, function_name, input_sizes, timeout):
 	op_counts = []
 
 	with tempfile.NamedTemporaryFile() as fp:
 		for input_size in input_sizes:
 			command = f'{command_prefix} {input_size}'
-			op_count = get_op_count(command, function_name, fp.name)
+			op_count = get_op_count(command, function_name, timeout, fp.name)
 
 			op_counts.append(op_count)
 
 	return op_counts
 
-def get_op_count(command, function_name, temp_file_name):
+def get_op_count(command, function_name, timeout, temp_file_name):
 	log_file = temp_file_name
 
 	try:
@@ -128,7 +135,7 @@ def get_op_count(command, function_name, temp_file_name):
 		process = subprocess.run(
 			valgrind_cmd,
 			shell=True,
-			timeout=5,
+			timeout=timeout,
 			check=True,
 		)
 	except subprocess.TimeoutExpired as e:
