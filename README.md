@@ -2,7 +2,7 @@
 
 Complexity analyser estimates the time complexity of C functions.
 
-It uses Callgrind (a Valgrind tool) to measure the number of instructions executed by a C function for different input sizes, and then linear regression to determine the most likely time complexity of the function out of commonly-occurring time complexities ($O(1)$, $O(\log n)$, $O(n)$, $O(n \log n)$, $O(n^2)$, $O(n^3)$, $O(2^n)$).
+It uses Callgrind (a Valgrind tool) to measure the number of instructions executed by a C function for different input sizes, and then linear regression to determine the most likely time complexity of the function out of commonly-occurring time complexities ($O(1)$, $O(\log n)$, $O(n)$, $O(n \log n)$, $O(n^2)$, $O(n^3)$, $O(2^n)$ ).
 
 # How to use
 
