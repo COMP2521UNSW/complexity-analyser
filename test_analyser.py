@@ -48,6 +48,9 @@ class TestLinearComplexity(TestSuite):
 		self.run_test('heapify', [10, 20, 30, 40, 50, 60, 70, 80])
 		self.run_test('heapify', [20, 40, 60, 80, 100, 120, 140, 160])
 
+	def test_disguiseAttempt(self):
+		self.run_test('disguiseAttempt', [10, 20, 30, 40, 50, 60, 70, 80])
+
 class TestLoglinearComplexity(TestSuite):
 	subdir_name = 'loglinear'
 	expected_complexity = FunctionName.LOGLINEAR
@@ -70,6 +73,9 @@ class TestQuadraticComplexity(TestSuite):
 
 	def test_twoSum(self):
 		self.run_test('twoSum', [10, 20, 30, 40, 50, 60, 70, 80])
+
+	def test_disguiseAttempt(self):
+		self.run_test('disguiseAttempt', [10, 20, 30, 40, 50, 60, 70, 80])
 
 class TestCubicComplexity(TestSuite):
 	subdir_name = 'cubic'
