@@ -22,6 +22,7 @@ class Model:
 	name: str
 	model: linear_model.LinearRegression
 	score: float = None
+	overflow_error: bool = False
 
 	def __init__(self, name):
 		self.name = name
@@ -36,6 +37,7 @@ class Model:
 
 		except ValueError as e:
 			self.score = float('-inf')
+			self.overflow_error = True
 
 		return self.score		
 
@@ -46,9 +48,14 @@ class Model:
 
 	def log(self):
 		logging.info(f'{self.name}')
-		logging.info(f'Coefficients: {self.model.coef_}')
-		logging.info(f'Intercept: {self.model.intercept_}')
-		logging.info(f'Score: {self.score}')
+
+		if self.overflow_error:
+			logging.info(f'Overflow error')
+		else:
+			logging.info(f'Coefficients: {self.model.coef_}')
+			logging.info(f'Intercept: {self.model.intercept_}')
+			logging.info(f'Score: {self.score}')
+
 		logging.info(f'')
 
 ########################################################################
@@ -175,7 +182,8 @@ def create_models(functions, x, y):
 
 	X_cols = []
 	for function in functions:
-		X_cols.append(function['fn'](x))
+		with np.errstate(over='ignore'):
+			X_cols.append(function['fn'](x))
 
 		model = Model(function['name'])
 		model.fit_and_score(np.concatenate(X_cols, axis=1), y)
